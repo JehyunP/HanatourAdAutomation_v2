@@ -28,7 +28,9 @@ from configs.s3_config import (
     REVIEW_FOLDER,
     REVIEW_SEJU,
     REVIEW_DREAM,
-    LOG_FOLDER
+    LOG_FOLDER,
+    SEJU_LISTED,
+    HOPE_LISTED,
 )
 from utils.slack_alert import (
     on_success,
@@ -91,6 +93,7 @@ with DAG(
         review=REVIEW_FOLDER,
         reserved=REVIEW_SEJU,
         upload_path=SFTP_PATH_SEJU,
+        listed=SEJU_LISTED,
         target='seju'
     )
     
@@ -104,6 +107,7 @@ with DAG(
         review=REVIEW_FOLDER,
         reserved=REVIEW_DREAM,
         upload_path=SFTP_PATH_DREAM,
+        listed=HOPE_LISTED,
         target='hope'
     )
     

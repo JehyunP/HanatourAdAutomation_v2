@@ -1,5 +1,6 @@
 
 from datetime import datetime
+import re
 
 
 def split_kst(execution_date:datetime):
@@ -82,3 +83,14 @@ def extend_review(df1, df2):
     )
 
     return review_count_series, rating_series
+
+
+
+def sort_title_universal(title, sep=''):
+    text = re.sub(r'(\d+)\s*(박|일|월|회|성급|km|성)', r'\1\2 ', title)
+    text = text.lower().strip()
+
+    unique_words = set(text)
+    sorted_words = sorted(list(unique_words))
+    
+    return sep.join(sorted_words)

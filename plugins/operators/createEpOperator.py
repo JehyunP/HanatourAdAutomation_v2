@@ -13,6 +13,7 @@ from utils.preprocessor import (
 
 # Generals
 import logging
+import pandas as pd
 
 # setup logging format
 logger = logging.getLogger(__name__)
@@ -29,6 +30,7 @@ class CreateEpOperator(BaseOperator):
     
     template_fields = (
         "target",
+        "listed",
         "upload_path",
         "reserved",
         "review",
@@ -47,6 +49,7 @@ class CreateEpOperator(BaseOperator):
         review,
         reserved,
         upload_path,
+        listed,
         target,
         **kwargs
     ):
@@ -58,6 +61,7 @@ class CreateEpOperator(BaseOperator):
         self.review = review
         self.reserved = reserved
         self.upload_path = upload_path
+        self.listed = listed
         self.target = target
         
     
@@ -85,9 +89,16 @@ class CreateEpOperator(BaseOperator):
             value=duplicated
         )
         
+        # Append Custom listed ad to ep
+        listed_ep = s3Hook.get_file(self.silver_bucket, self.listed)
+        listed_ep['naver_category'] = listed_ep['naver_category'].astype(str)
+        listed_ep['model_number'] = listed_ep['model_number'].astype(str)
+        
+        finall_ep = pd.concat([ep, listed_ep])
+        
         # Upload cafe24 via SFTP
         sftp = SFTPHook()
-        sftp.upload_df(ep, self.upload_path)
+        sftp.upload_df(finall_ep, self.upload_path)
         
         
         # upload into S3 Gold bucket
@@ -102,4 +113,4 @@ class CreateEpOperator(BaseOperator):
                 }
             )
             
-        s3Hook.upload_file(ep, self.gold_bucket, new_key)
+        s3Hook.upload_file(finall_ep, self.gold_bucket, new_key)

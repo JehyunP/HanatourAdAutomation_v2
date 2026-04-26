@@ -80,8 +80,8 @@ class APIHook(BaseHook):
             clpsnCnt = int(data.get('clpsnCnt', 0) or 0) # Current Seat
             resAmndPsblYn = str(data.get('resAmndPsblYn', 'Y')) # Is Available
             
-            # case -> the product should available, overall seats should be greater than 1 and greater than current seat
-            if (resAmndPsblYn.lower() == 'y') and (seatCnt > 1) and (seatCnt > clpsnCnt):
+            # case -> the product should available, overall seats should be greater than 0 and greater than current seat
+            if """(resAmndPsblYn.lower() == 'y') and """(seatCnt > 0):# and (seatCnt > clpsnCnt):  <- Stop this since there would be extra seats later
                 return True, False
             
             return False, True

@@ -8,7 +8,11 @@ from configs.ep_config import *
 import logging
 import pandas as pd
 
-from utils.preprocessor import extend_review
+from utils.preprocessor import (
+    extend_review,
+    sort_title_universal
+)
+
 
 # setup logging format
 logger = logging.getLogger(__name__)
@@ -30,24 +34,20 @@ class EpHook(BaseHook):
         review_count, review_rating = extend_review(self.df, self.review)
         
         try:
+            
+            link = ("https://" + self.target +
+                    ".hanatour.com/trp/pkg/CHPC0PKG0200M200?pkgCd=" +
+                    self.df['product_code'].astype(str) +
+                    "&prePage=major-products/" + self.df[f'{self.target}_id'].astype(str))
+            
             ep = pd.DataFrame({
                 'id' : self.df[f'{self.target}_id'],
                 'title' : self.df[f'{self.target}_title'],
                 'price_pc' : self.df['adtTotlAmt'],
                 'benefit_price' : self.df['adtTotlAmt'],
                 'normal_price' : self.df['adtTotlAmt'],
-                'link' : (
-                    "https://" + self.target +
-                    ".hanatour.com/trp/pkg/CHPC0PKG0200M200?pkgCd=" +
-                    self.df['product_code'].astype(str) +
-                    "&prePage=major-products"
-                ),
-                'mobile_link' : (
-                    "https://" + self.target +
-                    ".hanatour.com/trp/pkg/CHPC0PKG0200M200?pkgCd=" +
-                    self.df['product_code'].astype(str) +
-                    "&prePage=major-products"
-                ),
+                'link' : link,
+                'mobile_link' : link,
                 'image_link' : self.df[f'{self.target}_image'],
                 'add_image_link' : self.df['extra_image'],
                 'video_url' : video_url,
@@ -99,14 +99,23 @@ class EpHook(BaseHook):
             
             ep = ep.loc[ep['price_pc'] != 0]
             
+            # Drop non title data
+            ep = ep[ep['title'].notna()]
             
             # DF dropped duplicate
             ep_unique = ep.drop_duplicates(subset=['product_code'], keep='first')
-            ep_unique = ep_unique.drop(columns=['product_code'])
+            
+            # Drop and save duplicated title 
+            ep_unique['temp_sorted'] = ep_unique['title'].apply(sort_title_universal)
+            title_removed = ep_unique[ep_unique.duplicated(subset=['temp_sorted'], keep='first')]
+            ep_unique = ep_unique.drop_duplicates(subset=['temp_sorted'], keep='first')
+            ep_unique = ep_unique.drop(columns=['temp_sorted'])
 
             # DF duplicated data
+            ep_unique = ep_unique.drop(columns=['product_code'])
             ep_removed = ep[ep.duplicated(subset=['product_code'], keep='first')]
-            code_removed = ep_removed['product_code'].tolist()
+            merged_removed = pd.concat([ep_removed, title_removed])
+            code_removed = merged_removed['product_code'].tolist()
             
             logger.info(
                 "[SUCCUESS] EP Dataset Created [%d | %d]",
